@@ -1,0 +1,75 @@
+
+
+# FROM STATES --------------------------------------------------------------------------
+
+
+class Logging1(State):
+    MODE_COLOR_SENSOR = 0
+    MODE_TIME = 1
+
+    def __init__(self, frequency, mode, network=True):
+        self.time_last_debug = 0
+        self.period = 1.0 / frequency
+
+        if mode == Logging1.MODE_TIME:
+            if network is True:
+                self.logger = networking.Logger_NetworkConnection(HOST, PORT, ["time"])
+            else:
+                self.logger = networking.Logger_ToFile(["time"])
+            self.log_func = self._log_time
+
+        if mode == Logging1.MODE_TIME:
+            if network is True:
+                self.logger = networking.Logger_NetworkConnection(HOST, PORT, ["time", "v", "e", "i", "d"])
+            else:
+                self.logger = networking.Logger_ToFile(["time", "v", "e", "i", "d"])
+            self.log_func = self._log_colorsensor
+
+    def _log_colorsensor(self):
+        self.logger.log(
+            [time.time(), _color_sensor.raw_value, _color_sensor.error, _color_sensor.integral, _color_sensor.derivative])
+
+    def _log_time(self):
+        self.logger.log([time.time()])
+
+    def act(self):
+        if time.time() - self.time_last_debug >= self.period:
+            self.log_func()
+        return self
+
+
+class Logging2(State):
+    MODE_COLOR_SENSOR = 0
+    MODE_TIME = 1
+
+    def __init__(self, after_n_steps, mode, network=True):
+        self.time_last_debug = 0
+        self.after_n_steps = after_n_steps
+        self.n = 0
+
+        if mode == Logging1.MODE_TIME:
+            if network is True:
+                self.logger = networking.Logger_NetworkConnection(HOST, PORT, ["time"])
+            else:
+                self.logger = networking.Logger_ToFile(["time"])
+            self.log_func = self._log_time
+
+        if mode == Logging1.MODE_COLOR_SENSOR:
+            if network is True:
+                self.logger = networking.Logger_NetworkConnection(HOST, PORT, ["time", "v", "e", "i", "d"])
+            else:
+                self.logger = networking.Logger_ToFile(["time", "v", "e", "i", "d"])
+            self.log_func = self._log_colorsensor
+
+    def _log_colorsensor(self):
+        self.logger.log(
+            [time.time(), _color_sensor.raw_value, _color_sensor.error, _color_sensor.integral, _color_sensor.derivative])
+
+    def _log_time(self):
+        self.logger.log([time.time()])
+
+    def act(self):
+        self.n += 1
+        if self.n > self.after_n_steps:
+            self.n = 0
+            self.log_func()
